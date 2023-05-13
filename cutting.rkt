@@ -4,7 +4,9 @@
 (require "placement.rkt")
 (require "structs.rkt")
 
-(define (process-file order-items)
+(provide process-data)
+
+(define (process-data order-items)
     (define material-width 2400)
     (define material-height 1200)
     (define groupped-items (group-by order-item-struct-material-id order-items))
@@ -35,7 +37,6 @@
                                                    material-height
                                                    (order-item-struct-material-id (first order-items))
                                                    (list (space-struct 0 0 material-width material-height)))))
-    (println sheets)
     (define cutting-patterns (list '()))
     (define unused-items '())
     (for ([item order-items])
@@ -46,14 +47,12 @@
             [else
                 (define placement (find-placement item sheets))
                 (when (empty? placement)
-                    (println "placement is empty")
                     (set! sheets (append sheets (list (rectangular-sheet-struct 
                                                             material-width material-height
                                                             (order-item-struct-material-id item)
                                                             (list (space-struct 0 0 material-width material-height))))))
                     (set! cutting-patterns (append cutting-patterns (list '())))
-                    (set! placement (find-placement item sheets))
-                    (println (format "placement after adding a new sheet ~a" placement)))
+                    (set! placement (find-placement item sheets)))
                 (define b-item (list-ref placement 0))
                 (define b-sheet (list-ref placement 1))
                 (define b-space (list-ref placement 2))
@@ -76,7 +75,6 @@
                                         sheet-pattern))
                                 (range (length cutting-patterns)) cutting-patterns))
                 (set-rectangular-sheet-struct-available-spaces! best-sheet (generate-available-spaces best-sheet (last (list-ref cutting-patterns best-sheet-index))))
-                (println (rectangular-sheet-struct-available-spaces best-sheet))
                 ]))
 
     ;;calculate material waste
@@ -97,7 +95,6 @@
 
     (define unused-area (- total-area occupied-area))
     (define waste-percentage (* (/ unused-area total-area) 100))
-    (println (format "waste percentage ~a" (exact->inexact waste-percentage)))
     (make-hash
         (list
             (cons 'cutting-patterns cutting-patterns)
@@ -112,48 +109,23 @@
 
 ;; Testing
 
-(define order-items (list
-                     (order-item-struct 490 2000 4784 #t)
-                     (order-item-struct 482 1500 4784 #t)
-                     (order-item-struct 989 564 4827 #t)
-                     (order-item-struct 989 564 4827 #t)
-                     (order-item-struct 989 564 4827 #t)
-                     (order-item-struct 490 564 4827 #t)
-                     (order-item-struct 490 564 4827 #t)
-                     (order-item-struct 490 564 4827 #t)
-                     (order-item-struct 482 564 4827 #t)
-                     (order-item-struct 490 562 4827 #t)
-                     (order-item-struct 490 564 4827 #t)
-                     (order-item-struct 490 564 4827 #t)
-                     (order-item-struct 490 564 4827 #t)
-                     (order-item-struct 490 564 4827 #t)
-                     (order-item-struct 490 564 4827 #t)
-                     (order-item-struct 490 564 4827 #t)
-                     (order-item-struct 690 564 4827 #t)
-                     (order-item-struct 62 690 4827 #t)))
-
-(define cutting-result (process-file order-items))
-(define cutting-patterns (hash-ref cutting-result 'cutting-patterns))
-(define num-sheets (hash-ref cutting-result 'number-of-sheets))
-(define waste-percentage (hash-ref cutting-result 'waste-percentage))
-(define unused-items (hash-ref cutting-result 'unused-items))
-(define sheets (hash-ref cutting-result 'sheets))
-
-; Print the cutting patterns
-(println "Sheets:")
-(for-each (lambda (i sheet-patterns)
-            (println (format "Sheet ~a:" (+ i 1)))
-            (for-each (lambda (pattern)
-                        (define-values (x y item-width item-height) (values (cutting-pattern-struct-x pattern) (cutting-pattern-struct-y pattern)
-                                                                            (cutting-pattern-struct-width pattern) (cutting-pattern-struct-height pattern)))
-                        (println (format "  Order Item: width=~a, height=~a, position=(~a, ~a), material=~a"
-                                         item-width item-height x y (rectangular-sheet-struct-material-id (list-ref sheets i)))))
-                      sheet-patterns))
-          (range (length sheets))
-          cutting-patterns)
-
-(println (format "Number of Sheets: ~a" num-sheets))
-(println (format "Waste Percentage: ~a" waste-percentage))
-(println "Unused Items:")
-(for-each println unused-items)
+; (define order-items (list
+;                      (order-item-struct 490 2000 4784 #t)
+;                      (order-item-struct 482 1500 4784 #t)
+;                      (order-item-struct 989 564 4827 #t)
+;                      (order-item-struct 989 564 4827 #t)
+;                      (order-item-struct 989 564 4827 #t)
+;                      (order-item-struct 490 564 4827 #t)
+;                      (order-item-struct 490 564 4827 #t)
+;                      (order-item-struct 490 564 4827 #t)
+;                      (order-item-struct 482 564 4827 #t)
+;                      (order-item-struct 490 562 4827 #t)
+;                      (order-item-struct 490 564 4827 #t)
+;                      (order-item-struct 490 564 4827 #t)
+;                      (order-item-struct 490 564 4827 #t)
+;                      (order-item-struct 490 564 4827 #t)
+;                      (order-item-struct 490 564 4827 #t)
+;                      (order-item-struct 490 564 4827 #t)
+;                      (order-item-struct 690 564 4827 #t)
+;                      (order-item-struct 62 690 4827 #t)))
 

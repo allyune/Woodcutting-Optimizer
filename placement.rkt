@@ -132,19 +132,15 @@
 
 
 (define (find-placement order-item sheets)
-    (println (format "Getting placement for width=~a height=~a" (order-item-struct-width order-item) (order-item-struct-height order-item)))
     ; sheets of the same material id with empty spaces
     (define valid-sheets (get-valid-sheets order-item sheets))
-    (println (format "Valid sheets ~a" valid-sheets))
     ;; sheets where item can be places
     (define suitable-sheets (filter (lambda (sheet)
                                         (not (empty? (get-valid-spaces order-item sheet))))
                                 valid-sheets))
-    (println (format "Suitable sheets ~a" suitable-sheets))
     (define best-sheet (if (empty? suitable-sheets)
                             #f
                             (first suitable-sheets)))
-    (println (format "Best sheet sheets ~a" best-sheet))
     
     (cond 
         [(not best-sheet) '()]

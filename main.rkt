@@ -1,10 +1,14 @@
 #lang racket
 
-(require csv-reading	
+(require csv-reading
+        racket/date
         "structs.rkt"
         "input.rkt"
         "output.rkt"
         "cutting.rkt")
+(provide process-file
+         cutting-result->output
+         make-csv-file-name)
 
 (define curr-sheet-number (make-parameter #f))
 (define curr-material-id (make-parameter #f))
@@ -31,7 +35,15 @@
         (raise-user-error (format "Invalid data error: wrong data format on rows: ~a " (string-join (map number->string result) ", ")))
         (process-data result)))
 
-(define (cutting-patterns->output cutting-result)
+(define (make-csv-file-name)
+    (format "~a-cutting-patterns.csv" (string-append
+                                                            (number->string (date-day (current-date)))
+                                                            "-"
+                                                            (number->string (date-month (current-date)))
+                                                            "-"
+                                                            (number->string (date-year (current-date))))))
+
+(define (cutting-result->output cutting-result)
     (define cutting-patterns (hash-ref cutting-result 'cutting-patterns))
     (define unused-items (hash-ref cutting-result 'unused-items))
     (define sheets (hash-ref cutting-result 'sheets))
@@ -42,12 +54,8 @@
                                 [curr-material-id (rectangular-sheet-struct-material-id (list-ref sheets (curr-sheet-number)))])
                     (map cutting-pattern->list sheet-pattern))) cutting-patterns))
     (define to-csv (append (list csv-header) (apply append data)))
-    to-csv)
-
-(define cutting-result (process-file data))
-(define num-sheets (hash-ref cutting-result 'number-of-sheets))
-(define waste-percentage (hash-ref cutting-result 'waste-percentage))
-(println (output->string (cutting-patterns->output cutting-result)))
+    (define csv-string (output->string to-csv))
+    csv-string)
 
 ; Print the cutting patterns
 ; (println "Sheets:")

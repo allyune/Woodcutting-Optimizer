@@ -3,31 +3,29 @@
 (require csv-reading	
         "structs.rkt")
 
-(provide try-get-order-items
-        data)
-
-(define csv-file (build-path (find-system-path 'exec-file) "filename.txt"))
-
-(define data (rest (csv->list (open-input-file "example.csv"))))
-
+(provide try-get-order-items)
 
 (define (valid-entry? value)
   (and (integer? (string->number value))
        (> (string->number value) 0)))
 
 (define (valid-material-and-quantity? row)
-  (and (valid-entry? (list-ref row 16))
+  (and 
+       (or (valid-entry? (list-ref row 16))
+           (string? (list-ref row 16)))
        (valid-entry? (list-ref row 17))))
 
-;not filtering out rows with missing data yet to avoid errors with list-ref in valid-material-and-quantity?
+;not filtering out rows shorter than 18 yet to avoid errors with list-ref in valid-material-and-quantity?
+; TODO: think what to do with rows with 0 on width or height - now filtering out
 (define (clean-data rows)
-    (filter (lambda (row) 
+    (define clean-data (filter (lambda (row) 
                 (or (< (length row) 18)
                     (and
                         (valid-material-and-quantity? row)
                         (valid-entry? (list-ref row 3))
                         (valid-entry? (list-ref row 4)))))
         rows))
+    clean-data)
 
 (define (valid-row? row)
     (and 
@@ -49,7 +47,7 @@
   (define result '())
   (if (not (empty? invalid-rows))
       invalid-rows
-      (for ([row data])
+      (for ([row cleaned-data])
         (let process-row ([n (string->number (list-ref row 17))])
           (cond 
            [(= n 0) '()]

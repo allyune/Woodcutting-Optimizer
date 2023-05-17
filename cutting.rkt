@@ -7,10 +7,10 @@
 (provide process-data)
 
 (define (process-data order-items)
-    (define material-width 2400)
-    (define material-height 1200)
+    (define material-width 2800)
+    (define material-height 2070)
     (define groupped-items (group-by order-item-struct-material-id order-items))
-    (define sorted-item-list (map sort-by-area-desc groupped-items))
+    (define sorted-item-list (map sort-by-long-side groupped-items))
     (define sorted-groupped-items-list (apply append sorted-item-list))
     (define result (get-cutting-patterns material-width material-height sorted-groupped-items-list))
     result)
@@ -25,6 +25,44 @@
                    (list pivot)
                    (sort-by-area-desc (filter (lambda (x) (<= (* (order-item-struct-width x) (order-item-struct-height x))
                                                               (* (order-item-struct-width pivot) (order-item-struct-height pivot)))) rest))))]))
+
+(define (longest-side order-item)
+    (cond
+        [(> (order-item-struct-height order-item) (order-item-struct-width order-item)) (order-item-struct-height order-item)]
+        [else 
+            (order-item-struct-width order-item)]))
+
+(define (shortest-side order-item)
+    (cond
+        [(<= (order-item-struct-height order-item) (order-item-struct-width order-item)) (order-item-struct-height order-item)]
+        [else 
+            (order-item-struct-width order-item)]))
+
+(define (sort-by-long-side group)
+  (cond [(empty? group) empty]
+        [else
+         (let ((pivot (first group))
+               (rest (rest group)))
+           (append (sort-by-long-side (filter (lambda (x) (> (longest-side x) 
+                                                             (longest-side pivot) )) rest))
+                   (list pivot)
+                   (sort-by-long-side (filter (lambda (x) (<= (longest-side x)
+                                                              (longest-side pivot))) rest))))]))
+(define (aspect-ratio order-item)
+    (/ (longest-side order-item) (shortest-side order-item)))
+
+(define (sort-by-aspect-ratio group)
+  (cond [(empty? group) empty]
+        [else
+         (let ((pivot (first group))
+               (rest (rest group)))
+           (append (sort-by-aspect-ratio (filter (lambda (x) (> (aspect-ratio x)
+                                                             (aspect-ratio pivot) )) rest))
+                   (list pivot)
+                   (sort-by-aspect-ratio (filter (lambda (x) (<= (aspect-ratio x)
+                                                              (aspect-ratio pivot))) rest))))]))
+
+
 (define (item-fits-on-material? item material-width material-height)
     (or (and (<= (order-item-struct-width item) material-width) 
              (<= (order-item-struct-height item) material-height))
@@ -128,4 +166,3 @@
 ;                      (order-item-struct 490 564 4827 #t)
 ;                      (order-item-struct 690 564 4827 #t)
 ;                      (order-item-struct 62 690 4827 #t)))
-

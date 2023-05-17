@@ -43,9 +43,9 @@
 
 (define (get-best-orientation item space)
     (cond
-        [(and (fits-original-orientation? item space)
-              (fits-rotated? item space))
-            (compare-aspect-ratios item space)]
+        ; [(and (fits-original-orientation? item space)
+        ;       (fits-rotated? item space))
+        ;     (compare-aspect-ratios item space)]
         [(fits-original-orientation? item space) 'original]
         [(fits-rotated? item space) 'rotated]))
 
@@ -105,6 +105,23 @@
                                             (order-item-struct-rotate item)) 
                                             sheet best-space)])]))
 
+(define (space-equals-order-item? item space)
+    (define-values (item-width item-height item-rotate) 
+                    (values (order-item-struct-width item) (order-item-struct-height item) 
+                            (order-item-struct-rotate item)))
+    (define-values (space-width space-height) 
+                    (values (space-struct-width space) (space-struct-height space)))
+    (define (item-matches-original? item space)
+        (and (= item-width space-width)
+             (= item-height space-height)))
+    (define (item-matches-rotated? item space)
+        (and (= item-height space-width)
+             (= item-width space-height)))
+    (if item-rotate
+        (or (item-matches-original? item space) 
+            (item-matches-rotated? item space))
+        (item-matches-original? item space)))
+
 ;; TODO: implement function for best placement by proximity proximity 
 (define (get-best-placement-by-proximity item sheet)
     (define-values (item-width item-height material-id rotate) 
@@ -112,7 +129,12 @@
                                 (order-item-struct-material-id item) (order-item-struct-rotate item)))
         (define valid-spaces (get-valid-spaces item sheet))
         (define sorted-spaces (sort-spaces-proximity valid-spaces))
-        (define best-space (first sorted-spaces))
+        (define matching-spaces (filter (lambda (space)
+                                            (space-equals-order-item? item space)) sorted-spaces))
+        (define best-space 
+            (if (not (empty? matching-spaces))
+                (first matching-spaces)
+                (first sorted-spaces)))
         (cond
             [(not (order-item-struct-rotate item))
                (define-values (space-x space-y space-width space-height) 
@@ -145,4 +167,4 @@
     (cond 
         [(not best-sheet) '()]
         [(order-item-struct-rotate order-item) (get-best-placement-by-score order-item best-sheet)]
-        [(not (order-item-struct-rotate order-item)) (get-best-placement-by-proximity order-item best-sheet)]))
+        [(not (order-item-struct-rotate order-item)) (get-best-placement-by-score order-item best-sheet)]))

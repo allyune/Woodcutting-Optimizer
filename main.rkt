@@ -4,7 +4,6 @@
         racket/date
         "structs.rkt"
         "input.rkt"
-        "output.rkt"
         "cutting.rkt")
 (provide process-file
          cutting-result->output
@@ -56,21 +55,3 @@
     (define to-csv (append (list csv-header) (apply append data)))
     (define csv-string (output->string to-csv))
     csv-string)
-
-; Print the cutting patterns
-; (println "Sheets:")
-; (for-each (lambda (i sheet-patterns)
-;             (println (format "Sheet ~a:" (+ i 1)))
-;             (for-each (lambda (pattern)
-;                         (define-values (x y item-width item-height) (values (cutting-pattern-struct-x pattern) (cutting-pattern-struct-y pattern)
-;                                                                             (cutting-pattern-struct-width pattern) (cutting-pattern-struct-height pattern)))
-;                         (println (format "  Order Item: width=~a, height=~a, position=(~a, ~a), material=~a"
-;                                          item-width item-height x y (rectangular-sheet-struct-material-id (list-ref sheets i)))))
-;                       sheet-patterns))
-;           (range (length sheets))
-;           cutting-patterns)
-
-; (println (format "Number of Sheets: ~a" num-sheets))
-; (println (format "Waste Percentage: ~a" waste-percentage))
-; (println "Unused Items:")
-; (for-each println unused-items)

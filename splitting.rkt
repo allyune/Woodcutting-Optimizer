@@ -1,6 +1,9 @@
 #lang racket
 (require "structs.rkt")
-(provide generate-available-spaces)
+(provide generate-available-spaces
+         margin)
+
+(define margin (make-parameter 0))
 
 (define (space-matches-item? item space)
     (define-values (item-x item-y item-width item-height) 
@@ -36,21 +39,22 @@
                     (values (space-struct-x space) (space-struct-y space)
                             (space-struct-width space) (space-struct-height space)))
     (when (intersects? item space)
-            (when (> item-x space-x)
+            ;left space
+            (when (> item-x (+ space-x (margin)))
                 (set! intersecting-spaces (append intersecting-spaces 
-                    (list (space-struct space-x space-y (- item-x space-x) space-height)))))
-            
-            (when (< (+ item-x item-width) (+ space-x space-width))
+                    (list (space-struct space-x space-y (- item-x space-x (margin)) space-height)))))
+            ;right space
+            (when (< (+ item-x item-width) (+ space-x space-width (margin)))
                 (set! intersecting-spaces (append intersecting-spaces 
-                    (list (space-struct (+ item-x item-width) space-y (- space-width (+ item-x item-width (- space-x))) space-height)))))
-
-            (when (> item-y space-y)
+                (list (space-struct (+ item-x item-width (margin)) space-y (- space-width (+ item-x item-width (margin) (- space-x))) space-height)))))
+            ;bottom space
+            (when (> item-y (+ space-y (margin)))
                 (set! intersecting-spaces (append intersecting-spaces 
-                    (list (space-struct space-x space-y space-width (- item-y space-y))))))
-
-            (when (< (+ item-y item-height) (+ space-y space-height))
+                    (list (space-struct space-x space-y space-width (- item-y space-y (margin)))))))
+            ;top space
+            (when (< (+ item-y item-height) (+ space-y space-height (margin)))
                 (set! intersecting-spaces (append intersecting-spaces
-                    (list (space-struct space-x (+ item-y item-height) space-width (- space-height (+ item-y item-height (- space-y)))))))))
+                    (list (space-struct space-x (+ item-y item-height (margin)) space-width (- space-height (+ item-y item-height (margin) (- space-y)))))))))
     intersecting-spaces)
     
 

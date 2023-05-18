@@ -1,7 +1,8 @@
 #lang racket/gui
 
 (require csv-reading
-         racket/snip	
+         racket/snip
+         mrlib/panel-wob	
          "main.rkt"
          "structs.rkt"
          "splitting.rkt")
@@ -14,9 +15,9 @@
 (define sheets '())
 
 ;; Styles
-(define background-background-no-file (make-object color% 234 182 118))
-(define background-background-with-file (make-object color% 36 155 98))
-(define results-background (make-object color% 235 237 237))
+(define dropdown-background-no-file (make-object color% 234 182 118))
+(define dropdown-background-with-file (make-object color% 36 155 98))
+(define main-background (make-object color% 239 240 239))
 (define results-text-color (make-object color% 80 80 80))
 (define text-color "white")
 (define grid-width 4)
@@ -27,7 +28,7 @@
 ;;Functions and classes
 
 (define (start-func)
-    (parameterize ([margin 10])
+    (parameterize ([margin (send margin-slider get-value)])
         (with-handlers 
             ([exn:fail?
                 (lambda (e) 
@@ -45,7 +46,7 @@
                             (new button% [parent error] [label "OK"] [callback (lambda (button event) (send error show #f))])
                             (send error show #t)
                             (set! input-file #f)
-                            (send dropdown-panel set-canvas-background background-background-no-file)
+                            (send dropdown-panel set-canvas-background dropdown-background-no-file)
                             (send frame refresh)
                             ]))])
             (define cutting-result (process-file data))
@@ -53,7 +54,7 @@
             (define cutting-sheets (hash-ref cutting-result 'sheets))
             (set! results cutting-result)
             (set! sheets cutting-sheets)
-            (send dropdown-panel set-canvas-background background-background-with-file)
+            (send dropdown-panel set-canvas-background dropdown-background-with-file)
             (send dropdown-panel refresh)
             (when results
             (define output-path (put-file "Save file to..." #f #f (make-csv-file-name) "csv"))
@@ -64,27 +65,34 @@
                     (lambda (output-port)
                     (write-string (cutting-result->output results) output-port))))
                 (define num-sheets (hash-ref results 'number-of-sheets))
-                (define waste-percentage (exact->inexact (hash-ref results 'waste-percentage)))
-                (send material-waste set-label (format "Waste percentage: ~a" waste-percentage))
-                (send total-sheets set-label (format "Total number of cutting sheets: ~a" num-sheets))
-                (send results-board refresh)))))
+                (send results-board refresh)
+                (send results-table refresh)))))
 
 (define my-canvas%
   (class canvas%
     (define/override (on-paint)
       (let ([dc (send this get-dc)])
-        (define background-color (if input-file background-background-with-file background-background-no-file))
+        (define background-color (if input-file dropdown-background-with-file dropdown-background-no-file))
         (send this set-canvas-background background-color)
         (define-values (canvas-width canvas-height) (send this get-size))
-        (send dc set-font (make-font #:size 14 #:family 'swiss #:weight 'light))
-        (send dc set-text-foreground text-color)
-        (define text (if input-file 
-                        (match (regexp-match #rx".*/(.*)$" (path->string input-file)) [(list _ match) match]) 
-                        "Click here to select a file or drop the file to this area"))
-        (define-values (text-width text-height a b) (send dc get-text-extent text))
-        (define text-x (quotient (- canvas-width text-width) 2))
-        (define text-y (quotient (- canvas-height text-height) 2))
-        (send dc draw-text text text-x text-y)))
+        (send dc set-font (make-font #:size 12 #:family 'swiss #:weight 'bold))
+        (send dc set-text-foreground results-text-color)
+        (cond 
+            [input-file
+                (define text (match (regexp-match #rx".*/(.*)$" (path->string input-file)) [(list _ match) match]))
+                (define-values (text-width text-height a b) (send dc get-text-extent text))
+                (define text-x (quotient (- canvas-width text-width) 2))
+                (define text-y (quotient (- canvas-height text-height) 2))
+                (send dc set-font (make-font #:size 14 #:family 'swiss #:weight 'bold))
+                (send dc set-text-foreground text-color)
+                (send dc draw-text text text-x text-y)]
+            [else
+                (define text "CLICK HERE TO SELECT A FILE OR DROP THE FILE TO THIS AREA")
+                (define-values (text-width text-height a b) (send dc get-text-extent text))
+                (define text-x (quotient (- canvas-width text-width) 2))
+                (define text-y (quotient (- canvas-height text-height) 2))
+                (send dc set-text-foreground results-text-color)
+                (send dc draw-text text text-x text-y)])))
 
     (define/override (on-drop-file file)
       (set! results #f)
@@ -110,7 +118,6 @@
      [min-height 100]
      [stretchable-width #t]
      [stretchable-height #f])))
-
 
 (define my-result-board%
   (class canvas%
@@ -138,7 +145,7 @@
                                         (define-values (x y width height) (values (cutting-pattern-struct-x item) (cutting-pattern-struct-y item)
                                                                                   (cutting-pattern-struct-width item) (cutting-pattern-struct-height item)))
                                         (send dc draw-rectangle (/ x 4) (/ y 4) (/ width 4) (/ height 4))))]))
-                (send popup set-canvas-background results-background)
+                (send popup set-canvas-background main-background)
                 (send popup-frame show #t)
                 (void))
 
@@ -203,6 +210,33 @@
                 (make-popup (list-ref (hash-ref results 'cutting-patterns) index))
             ))))
 
+(define (draw-table-header dc headers)
+    (send dc set-text-foreground "white")
+    (send dc set-font (make-font #:size 12 #:family 'swiss #:weight 'light))
+    (for ([text headers]
+          [index (range (length headers))])
+        (define-values (text-width text-height a b) (send dc get-text-extent text))
+        (define text-x (quotient (- (+ (* 100 (+ index 1)) (* 3 index) (* 100 index)) text-width) 2))
+        (define text-y (quotient (- 20 text-height) 2))
+        (send dc draw-text text text-x text-y)))
+
+(define (draw-results-table dc)
+    (send dc set-text-foreground "black")
+    (send dc set-font (make-font #:size 12 #:family 'swiss #:weight 'light))
+    (define sheets-summary (hash-ref results 'sheets-summary))
+    (define row-gap 3)
+    (define column-gap 3)
+    (define row-height 10)
+    (define header-height 20)
+    (define start-y (+ header-height row-gap 5))
+    (for ([row sheets-summary]
+          [row-index (range (length sheets-summary))])
+          (define row-y (+ start-y (* (+ row-height gap) row-index)))
+          (for ([text row]
+               [column-index (range (length row))])
+            (define text-x (+ (* (+ 100 column-gap) column-index 1) 10))
+            (send dc draw-text (number->string text) text-x row-y))))
+
 ;;Layout
 (define frame (new frame% [label "Welcome to STAKO cutter"] [width 1000] [height 600]))
 
@@ -212,27 +246,40 @@
 (define right (new vertical-panel% [parent columns] [style (list 'vscroll 'hscroll)] [min-width 900] [stretchable-width #t] [stretchable-height #t]))
 
 (define dropdown-panel (new my-canvas% [parent left] [style '(border)]
-                                       [vert-margin 10] [horiz-margin 30]))
+                                       [vert-margin 5] [horiz-margin 5]))
 
-(define results-box (new group-box-panel%	 
-   	 	[label "Results"]	 
-   	 	[parent left]	 
-   	 	[vert-margin 10]	 
-   	 	[horiz-margin 10]	 
-   	 	[border 2]	 
-   	 	[alignment '(left top)]	 
-   	 	[min-height 150]	 
-   	 	[stretchable-width #t]	 
-   	 	[stretchable-height #f]))
+(define margin-slider (new slider%
+                    [label "Margin"]
+                    [parent left]
+                    [vert-margin 20]
+                    [horiz-margin 20]
+                    [min-value 0]
+                    [max-value 100]
+                    [init-value 30]))
 
-(define material-waste (new message% [parent results-box] [label "Material waste: "] [stretchable-width #t]))
-(define total-sheets (new message% [parent results-box] [label "Total number of cutting sheets: "] [stretchable-width #t]))
-
+(define results-table (new canvas% 
+                        [parent left]
+                        [vert-margin 10] [horiz-margin 10]
+                        [stretchable-width #f] [stretchable-height #t]
+                        [min-height 400] [min-width 410]
+                        [style '(transparent)]
+                        [paint-callback
+                            (lambda (canvas dc)
+                                (send dc set-brush (new brush% [color results-text-color]))
+                                (send dc set-pen (new pen% [color results-text-color] [width 0.5] [style 'solid]))
+                                (send dc draw-rectangle 0 0 100 20)
+                                (send dc draw-rectangle 103 0 100 20)
+                                (send dc draw-rectangle 206 0 100 20)
+                                (send dc draw-rectangle 309 0 100 20)
+                                (draw-table-header dc '("Material" "Sheets" "Unused items" "Waste"))
+                                (when results (draw-results-table dc))
+                                )]))
 
 (define results-board (new my-result-board% [parent right]
                                        [vert-margin 10] [horiz-margin 10]
                                        [stretchable-width #t] [stretchable-height #t]
                                        [min-height 400] [min-width 400]
+                                       [style '(transparent)]
                                        [paint-callback
                                         (lambda (canvas dc)
                                             (define text "Please select a file")
@@ -250,7 +297,8 @@
                                                 (draw-rectangles dc)]))]))
                               
                                             
-(send results-board set-canvas-background results-background)
-
+; (send results-board set-canvas-background main-background)
+; (send results-table set-canvas-background main-background)
+(println (white-on-black-panel-scheme?))
 (send dropdown-panel accept-drop-files #t)
 (send frame show #t)

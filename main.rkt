@@ -36,22 +36,23 @@
 
 (define (make-csv-file-name)
     (format "~a-cutting-patterns.csv" (string-append
-                                                            (number->string (date-day (current-date)))
-                                                            "-"
-                                                            (number->string (date-month (current-date)))
-                                                            "-"
-                                                            (number->string (date-year (current-date))))))
+                                          (number->string (date-day (current-date)))
+                                          "-"
+                                          (number->string (date-month (current-date)))
+                                          "-"
+                                          (number->string (date-year (current-date))))))
 
 (define (cutting-result->output cutting-result)
     (define cutting-patterns (hash-ref cutting-result 'cutting-patterns))
     (define unused-items (hash-ref cutting-result 'unused-items))
     (define sheets (hash-ref cutting-result 'sheets))
     (define csv-header '("Sheet" "Material" "X" "Y" "Width" "Height"))
+    (define unused-items-list (map (lambda (item) (list "NOT USED" (order-item-struct-material-id item) "X" "X" (order-item-struct-width item) (order-item-struct-height item))) unused-items))
     (define data 
         (map (lambda (sheet-pattern)
                 (parameterize* ([curr-sheet-number (index-of cutting-patterns sheet-pattern)]
                                 [curr-material-id (rectangular-sheet-struct-material-id (list-ref sheets (curr-sheet-number)))])
                     (map cutting-pattern->list sheet-pattern))) cutting-patterns))
-    (define to-csv (append (list csv-header) (apply append data)))
+    (define to-csv (append (list csv-header) unused-items-list (apply append data)))
     (define csv-string (output->string to-csv))
     csv-string)

@@ -5,7 +5,8 @@
          mrlib/panel-wob	
          "main.rkt"
          "structs.rkt"
-         "splitting.rkt")
+         "splitting.rkt"
+         "cutting.rkt")
 
 ;global variables
 (define input-file #f)
@@ -25,49 +26,7 @@
 (define rectangle-height 181)
 (define gap 20)
 
-;;Functions and classes
-
-(define (start-func)
-    (parameterize ([margin (send margin-slider get-value)])
-        (with-handlers 
-            ([exn:fail?
-                (lambda (e) 
-                (println (format "Error messagw: ~a" (exn-message e)))
-                    (cond
-                        [(regexp-match? #px"^open-output-file: file exists.*" (exn-message e))]
-                        [else (println "wrong data format")    
-                            (define error (new dialog%	 
-                                    [label "Input file error"]
-                                    [parent frame]
-                                    [width 150]
-                                    [height 100]
-                                    [style '(close-button)]))
-                            (new message% [parent error] [label "Wrong data format, check the input file and try again"])
-                            (new button% [parent error] [label "OK"] [callback (lambda (button event) (send error show #f))])
-                            (send error show #t)
-                            (set! input-file #f)
-                            (send dropdown-panel set-canvas-background dropdown-background-no-file)
-                            (send frame refresh)
-                            ]))])
-            (define cutting-result (process-file data))
-            (define cutting-patterns (hash-ref cutting-result 'cutting-patterns))
-            (define cutting-sheets (hash-ref cutting-result 'sheets))
-            (set! results cutting-result)
-            (set! sheets cutting-sheets)
-            (send dropdown-panel set-canvas-background dropdown-background-with-file)
-            (send dropdown-panel refresh)
-            (when results
-            (define output-path (put-file "Save file to..." #f #f (make-csv-file-name) "csv"))
-            (when output-path
-                (when (file-exists? output-path)
-                    (delete-file output-path))
-                (call-with-output-file output-path
-                    (lambda (output-port)
-                    (write-string (cutting-result->output results) output-port))))
-                (define num-sheets (hash-ref results 'number-of-sheets))
-                (send results-board refresh)
-                (send results-table refresh)))))
-
+;;Classes 
 (define my-canvas%
   (class canvas%
     (define/override (on-paint)
@@ -137,8 +96,8 @@
                     [stretchable-width #f]
                     [stretchable-height #f]))
                 (define popup (new canvas% [parent popup-frame]
-                            [min-width 700]
-                            [min-height 518]
+                            [min-width 710]
+                            [min-height 525]
                             [paint-callback
                                 (lambda (canvas dc)
                                     (for ([item patterns])
@@ -149,6 +108,49 @@
                 (send popup-frame show #t)
                 (void))
 
+;;Functions 
+(define (start-func)
+    (parameterize ([margin (send margin-slider get-value)]
+                   [guillotine-cuts (send guillotine-check-box get-value)])
+        (with-handlers 
+            ([exn:fail?
+                (lambda (e) 
+                (println (format "Error messagw: ~a" (exn-message e)))
+                    (cond
+                        [(regexp-match? #px"^open-output-file: file exists.*" (exn-message e))]
+                        [else (println "wrong data format")    
+                            (define error (new dialog%	 
+                                    [label "Input file error"]
+                                    [parent frame]
+                                    [width 150]
+                                    [height 100]
+                                    [style '(close-button)]))
+                            (new message% [parent error] [label "Wrong data format, check the input file and try again"])
+                            (new button% [parent error] [label "OK"] [callback (lambda (button event) (send error show #f))])
+                            (send error show #t)
+                            (set! input-file #f)
+                            (send dropdown-panel set-canvas-background dropdown-background-no-file)
+                            (send frame refresh)
+                            ]))])
+            (define cutting-result (process-file data))
+            (define cutting-patterns (hash-ref cutting-result 'cutting-patterns))
+            (define cutting-sheets (hash-ref cutting-result 'sheets))
+            (set! results cutting-result)
+            (set! sheets cutting-sheets)
+            (send dropdown-panel set-canvas-background dropdown-background-with-file)
+            (send dropdown-panel refresh)
+            (when results
+            (define output-path (put-file "Save file to..." #f #f (make-csv-file-name) "csv"))
+            (when output-path
+                (when (file-exists? output-path)
+                    (delete-file output-path))
+                (call-with-output-file output-path
+                    (lambda (output-port)
+                    (write-string (cutting-result->output results) output-port))))
+                (define num-sheets (hash-ref results 'number-of-sheets))
+                (send results-board refresh)
+                (send results-table refresh)))))
+
 
 (define (draw-rectangles dc)
     (define (draw-rectangle-with-info canvas-x canvas-y element index)
@@ -157,13 +159,13 @@
         (define brush (new brush% [color "white"]))
         (send dc set-brush brush)
         (send dc set-pen (new pen% [color "black"] [width 0.5] [style 'long-dash]))
-        (define patterns (list-ref (hash-ref results 'cutting-patterns) index))
+        (define pattern (list-ref (hash-ref results 'cutting-patterns) index))
         (define sheet-num (+ index 1))
         (define material-id (rectangular-sheet-struct-material-id (list-ref sheets index)))
         (send dc draw-rectangle x y rectangle-width rectangle-height)
         (send dc set-pen (new pen% [color "black"] [width 0.5] [style 'solid]))
         (send dc draw-rectangle (+ x 3) (+ y 3) 175 130)
-        (for ([item patterns])
+        (for ([item pattern])
             (define-values (item-x item-y item-width item-height) (values (cutting-pattern-struct-x item) (cutting-pattern-struct-y item)
                                                         (cutting-pattern-struct-width item) (cutting-pattern-struct-height item)))
             (send dc draw-rectangle (+ (/ item-x 16) x 3) (+ (/ item-y 16) y 3) (/ item-width 16) (/ item-height 16)))
@@ -189,8 +191,7 @@
                     [rectangle-y (+ (* row (+ rectangle-height gap)) gap)])
                 (draw-rectangle-with-info rectangle-x rectangle-y (car patterns) index)
                 (loop (cdr patterns) row (+ col 1) (+ index 1)))]))
-            (define-values (canvas-width canvas-height) (send dc get-size))
-            (println canvas-height))
+            (send results-board min-height (+ 1000 (* 133 (ceiling (/ (length (hash-ref results 'cutting-patterns)) 4))))))
 
 (define (sheet-click-handler event)
     (define clicked-x (send event get-x))
@@ -211,6 +212,10 @@
             ))))
 
 (define (draw-table-header dc headers)
+    (send dc draw-rectangle 0 0 100 20)
+    (send dc draw-rectangle 103 0 100 20)
+    (send dc draw-rectangle 206 0 100 20)
+    (send dc draw-rectangle 309 0 100 20)
     (send dc set-text-foreground "white")
     (send dc set-font (make-font #:size 12 #:family 'swiss #:weight 'light))
     (for ([text headers]
@@ -235,15 +240,17 @@
           (for ([text row]
                [column-index (range (length row))])
             (define text-x (+ (* (+ 100 column-gap) column-index 1) 10))
-            (send dc draw-text (number->string text) text-x row-y))))
+            (send dc draw-text (number->string text) text-x row-y)))
+    (send results-table min-height (+ 200 (* 23 (length (hash-ref results 'sheets-summary))))))
 
 ;;Layout
-(define frame (new frame% [label "Welcome to STAKO cutter"] [width 1000] [height 600]))
+(define frame (new frame% [label "Welcome to STAKO cutter"] [width 1000] [height 700]))
 
 (define columns (new horizontal-panel% [parent frame]))
 
-(define left (new vertical-panel% [parent columns] [min-width 500]))
-(define right (new vertical-panel% [parent columns] [style (list 'vscroll 'hscroll)] [min-width 900] [stretchable-width #t] [stretchable-height #t]))
+(define left (new vertical-panel% [parent columns] [style (list 'vscroll 'hscroll 'auto-vscroll)] [min-width 500]))
+
+(define right (new vertical-panel% [parent columns] [style (list 'vscroll 'hscroll 'auto-vscroll)] [min-width 900] [stretchable-width #t] [stretchable-height #t]))
 
 (define dropdown-panel (new my-canvas% [parent left] [style '(border)]
                                        [vert-margin 5] [horiz-margin 5]))
@@ -257,23 +264,25 @@
                     [max-value 100]
                     [init-value 30]))
 
+(define guillotine-check-box (new check-box%
+                       [parent left]
+                       [vert-margin 20]
+                       [label "Ensure guillotine cuts?"]
+                       [value #f]))
+
 (define results-table (new canvas% 
                         [parent left]
                         [vert-margin 10] [horiz-margin 10]
                         [stretchable-width #f] [stretchable-height #t]
-                        [min-height 400] [min-width 410]
+                        [min-height 300] [min-width 410]
                         [style '(transparent)]
                         [paint-callback
                             (lambda (canvas dc)
                                 (send dc set-brush (new brush% [color results-text-color]))
                                 (send dc set-pen (new pen% [color results-text-color] [width 0.5] [style 'solid]))
-                                (send dc draw-rectangle 0 0 100 20)
-                                (send dc draw-rectangle 103 0 100 20)
-                                (send dc draw-rectangle 206 0 100 20)
-                                (send dc draw-rectangle 309 0 100 20)
-                                (draw-table-header dc '("Material" "Sheets" "Unused items" "Waste"))
-                                (when results (draw-results-table dc))
-                                )]))
+                                (when results 
+                                    (draw-table-header dc '("Material" "Sheets" "Unused items" "Waste"))
+                                    (draw-results-table dc)))]))
 
 (define results-board (new my-result-board% [parent right]
                                        [vert-margin 10] [horiz-margin 10]
@@ -296,9 +305,7 @@
                                                 (send dc set-font (make-font #:size 14 #:family 'swiss #:weight 'thin))
                                                 (draw-rectangles dc)]))]))
                               
-                                            
-; (send results-board set-canvas-background main-background)
-; (send results-table set-canvas-background main-background)
+
 (println (white-on-black-panel-scheme?))
 (send dropdown-panel accept-drop-files #t)
 (send frame show #t)

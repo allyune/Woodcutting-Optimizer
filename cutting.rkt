@@ -5,7 +5,10 @@
          "placement.rkt"
          "structs.rkt")
 
-(provide process-data)
+(provide process-data
+         guillotine-cuts)
+
+(define guillotine-cuts (make-parameter #f))
 
 (define (process-data order-items)
     (define material-width 2800)
@@ -113,7 +116,9 @@
                                         (append sheet-pattern (list (cutting-pattern-struct best-x best-y (order-item-struct-width curr-item) (order-item-struct-height curr-item))))
                                         sheet-pattern))
                                 (range (length cutting-patterns)) cutting-patterns))
-                (set-rectangular-sheet-struct-available-spaces! best-sheet (generate-available-spaces best-sheet (last (list-ref cutting-patterns best-sheet-index))))
+
+                (define available-spaces-func (if (guillotine-cuts) generate-available-spaces-guillotine generate-available-spaces))
+                (set-rectangular-sheet-struct-available-spaces! best-sheet (available-spaces-func best-sheet (last (list-ref cutting-patterns best-sheet-index))))
                 ]))
 
     (define (calculate-material-waste material-sheets)

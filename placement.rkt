@@ -1,17 +1,23 @@
 #lang racket
 
-(require "structs.rkt")
-(require math)
+(require "structs.rkt"
+         "splitting.rkt"
+         "utils.rkt"
+         "guillotine/placement.rkt"
+         math)
+
 (provide find-placement)
 
 ;; Helper functions for placement by score
-(define (fits-original-orientation? item space)
-    (and (<= (order-item-struct-width item) (space-struct-width space))
-                         (<= (order-item-struct-height item) (space-struct-height space))))
+(define (fits-original-orientation? item space sheet)
+    (and  
+         (<= (order-item-struct-width item) (space-struct-width space))
+         (<= (order-item-struct-height item) (space-struct-height space))))
 
-(define (fits-rotated? item space)
-    (and (<= (order-item-struct-height item) (space-struct-width space))
-                         (<= (order-item-struct-width item) (space-struct-height space))))
+(define (fits-rotated? item space sheet)
+    (and  
+          (<= (order-item-struct-height item) (space-struct-width space))
+          (<= (order-item-struct-width item) (space-struct-height space))))
 
 (define (get-valid-sheets item sheets)
     (filter (lambda (sheet)
@@ -21,14 +27,15 @@
             sheets))
 
 (define (get-valid-spaces item sheet)
+    (println "getting valid spaces")
     (define available-spaces (rectangular-sheet-struct-available-spaces sheet))
     (if (order-item-struct-rotate item)
         (filter (lambda (space)
-                    (or (fits-original-orientation? item space)
-                        (fits-rotated? item space)))
+                    (or (fits-original-orientation? item space sheet)
+                        (fits-rotated? item space sheet)))
             available-spaces)
         (filter (lambda (space)
-                    (fits-original-orientation? item space))
+                    (fits-original-orientation? item space sheet))
             available-spaces)))
 
 (define (compare-aspect-ratios item space)
@@ -41,15 +48,15 @@
         'original
         'rotated))
 
-(define (get-best-orientation item space)
+(define (get-best-orientation item space sheet)
     (cond
         ;===best orientation heuristics
         ; [(and (fits-original-orientation? item space)
         ;       (fits-rotated? item space))
         ;     (compare-aspect-ratios item space)]
         ;; ======
-        [(fits-original-orientation? item space) 'original]
-        [(fits-rotated? item space) 'rotated]))
+        [(fits-original-orientation? item space sheet) 'original]
+        [(fits-rotated? item space sheet) 'rotated]))
 
 
 ;; Helper functions for placing by dispance
@@ -75,7 +82,11 @@
     (define-values (item-width item-height material-id rotate) 
                    (values (order-item-struct-width item) (order-item-struct-height item)
                             (order-item-struct-material-id item) (order-item-struct-rotate item)))
-    (for ([space (get-valid-spaces item sheet)])
+    (define valid-spaces 
+        (if (guillotine-cuts) 
+            (get-valid-spaces-guillotine item sheet)
+            (get-valid-spaces item sheet)))
+    (for ([space valid-spaces])
         (define-values (space-x space-y space-width space-height) 
                        (values (space-struct-x space) (space-struct-y space)
                                (space-struct-width space) (space-struct-height space)))
@@ -97,7 +108,9 @@
                (list item sheet best-space)]
             [else
                 (case 
-                    (get-best-orientation item best-space)
+                    (if (guillotine-cuts)
+                        (get-best-orientation-guillotine item best-space sheet)
+                        (get-best-orientation item best-space sheet))
                     ['original (list item sheet best-space)]
                     ['rotated (list (order-item-struct 
                                             item-height 
@@ -144,7 +157,9 @@
                (list item sheet best-space)]
             [else
                 (case 
-                    (get-best-orientation item best-space)
+                    (if (guillotine-cuts)
+                        (get-best-orientation-guillotine item best-space sheet)
+                        (get-best-orientation item best-space sheet))
                     ['original (list item sheet best-space)]
                     ['rotated (list (order-item-struct 
                                             item-height 
@@ -158,12 +173,13 @@
     (define valid-sheets (get-valid-sheets order-item sheets))
     ;; sheets where item can be places
     (define suitable-sheets (filter (lambda (sheet)
-                                        (not (empty? (get-valid-spaces order-item sheet))))
+                                        (not (empty? (if (guillotine-cuts) 
+                                                            (get-valid-spaces-guillotine order-item sheet)
+                                                            (get-valid-spaces order-item sheet)))))
                                 valid-sheets))
     (define best-sheet (if (empty? suitable-sheets)
                             #f
                             (first suitable-sheets)))
-    
     (cond 
         [(not best-sheet) '()]
         [(order-item-struct-rotate order-item) (get-best-placement-by-score order-item best-sheet)]

@@ -6,7 +6,8 @@
          "main.rkt"
          "structs.rkt"
          "splitting.rkt"
-         "cutting.rkt")
+         "cutting.rkt"
+         "utils.rkt")
 
 ;global variables
 (define input-file #f)

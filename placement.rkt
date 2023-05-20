@@ -43,9 +43,11 @@
 
 (define (get-best-orientation item space)
     (cond
+        ;===best orientation heuristics
         ; [(and (fits-original-orientation? item space)
         ;       (fits-rotated? item space))
         ;     (compare-aspect-ratios item space)]
+        ;; ======
         [(fits-original-orientation? item space) 'original]
         [(fits-rotated? item space) 'rotated]))
 
@@ -59,7 +61,7 @@
       (+ (* x x) (* y y))))
   
   (define (compare-distances space1 space2)
-    (let ([dist1 (sqrt (distance-squared space1))]
+    (let ([dist1 (sqrt (distance-squared space1))] 
           [dist2 (sqrt (distance-squared space2))])
       (cond [(< dist1 dist2) -1]
             [(> dist1 dist2) 1]
@@ -87,7 +89,6 @@
                     (when (> score best-score)
                         (set! best-score score)
                         (set! best-space space))))
-
     (cond
             [(not (order-item-struct-rotate item))
                (define-values (space-x space-y space-width space-height) 
@@ -151,7 +152,6 @@
                                             (order-item-struct-material-id item)
                                             (order-item-struct-rotate item)) 
                                             sheet best-space)])]))
-
 
 (define (find-placement order-item sheets)
     ; sheets of the same material id with empty spaces

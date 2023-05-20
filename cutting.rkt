@@ -81,6 +81,7 @@
                                                    (list (space-struct 0 0 material-width material-height)))))
     (define cutting-patterns (list '()))
     (define unused-items '())
+    (define used-areas '())
     (for ([item order-items])
         (cond
             [(not (item-fits-on-material? item material-width material-height))
@@ -100,7 +101,6 @@
                 (define b-space (list-ref placement 2))
                 (define-values (curr-item best-sheet best-space)
                                 (values b-item b-sheet b-space))
-                ; unpacking best space
                 (define-values (best-x best-y best-width best-height) 
                             (values (space-struct-x best-space) (space-struct-y best-space)
                                     (space-struct-width best-space) (space-struct-height best-space)))
@@ -109,37 +109,55 @@
                 (println (format "Item ~a x ~a placed at coordinates (x=~a, y=~a) on cutting sheet ~a"
                             (order-item-struct-width curr-item) (order-item-struct-height curr-item)
                             best-x best-y best-sheet-index))
-
+                (define new-cutting-pattern (cutting-pattern-struct best-x best-y (order-item-struct-width curr-item) (order-item-struct-height curr-item)))
                 (set! cutting-patterns
                     (map (lambda (i sheet-pattern)
                                     (if (equal? i best-sheet-index)
-                                        (append sheet-pattern (list (cutting-pattern-struct best-x best-y (order-item-struct-width curr-item) (order-item-struct-height curr-item))))
+                                        (append sheet-pattern (list new-cutting-pattern))
                                         sheet-pattern))
                                 (range (length cutting-patterns)) cutting-patterns))
+                
+                (define used-width (if (<= (+ best-x  (margin) (order-item-struct-width curr-item))
+                                          material-width)
+                                        (+ (order-item-struct-width curr-item) (margin))
+                                        (+ (order-item-struct-width curr-item) 
+                                            (- material-width (+ best-x  (order-item-struct-width curr-item))))))
 
-                (define available-spaces-func (if (guillotine-cuts) generate-available-spaces-guillotine generate-available-spaces))
-                (set-rectangular-sheet-struct-available-spaces! best-sheet (available-spaces-func best-sheet (last (list-ref cutting-patterns best-sheet-index))))
+                (define used-height (if (<= (+ best-y (margin) (order-item-struct-height curr-item))
+                                          material-height)
+                                        (+ (order-item-struct-height curr-item) (margin))
+                                        (+ (order-item-struct-height curr-item) 
+                                            (- material-height (+ best-y (order-item-struct-height curr-item))))))
+
+                (set! used-areas (append used-areas (list (cons (order-item-struct-material-id curr-item)
+                                                                (* used-width used-height)))))
+
+                (define splitting-func (if (guillotine-cuts) generate-available-spaces-guillotine generate-available-spaces))
+                (define spaces-after-splitting (splitting-func best-sheet (last (list-ref cutting-patterns best-sheet-index)) best-space))
+                ; (set-rectangular-sheet-struct-available-spaces! best-sheet (merge-adjacent-spaces spaces-after-splitting))
+                (set-rectangular-sheet-struct-available-spaces! best-sheet spaces-after-splitting)
                 ]))
 
     (define (calculate-material-waste material-sheets)
-        (define material-cutting-patterns (map (lambda (sheet)
-                                                    (list-ref cutting-patterns (index-of sheets sheet))) material-sheets))
+        (println (format "Processing material ~a" (rectangular-sheet-struct-material-id (first material-sheets))))
+        (define filtered-used-areas (filter (lambda (area) 
+                                            (eq? (car area) 
+                                                  (rectangular-sheet-struct-material-id (first material-sheets)))) 
+                                used-areas))
+        (define material-used-area (apply + (map cdr filtered-used-areas)))
 
-        (define total-area
+        ;just multiply area of one to 
+        (define material-total-area
             (for/foldr ([acc 0])
                         ([sheet material-sheets])
                             (+ acc (* (rectangular-sheet-struct-width sheet) 
                                     (rectangular-sheet-struct-height sheet)))))
-                         
-        (define occupied-area
-            (for/foldr ([acc 0])
-                        ([sheet-pattern material-cutting-patterns])
-                        (define areas (map (lambda (item) (* (cutting-pattern-struct-width item) (cutting-pattern-struct-height item))) sheet-pattern))
-                        (+ acc (apply + areas))))
-        
-        (define unused-area (- total-area occupied-area))
+        (define material-unused-area (- material-total-area material-used-area))
+        (println (format "material unused area ~a" material-unused-area))
+        (println (format "material total area ~a" material-total-area))
+        (println (format "material waste ~a" ( / (round (* (exact->inexact (* (/ material-unused-area material-total-area) 100)) 10000))  10000.0)))
+        ( / (round (* (exact->inexact (* (/ material-unused-area material-total-area) 100)) 10000))  10000.0))
 
-         ( / (round (* (exact->inexact (* (/ unused-area total-area) 100)) 10000))  10000.0))
 
     (define (get-sheets-summary) 
         (define material-ids (list->set (map rectangular-sheet-struct-material-id sheets)))
@@ -152,15 +170,6 @@
                     (calculate-material-waste material-sheets)))
             (set->list material-ids)))
 
-    ;             (make-hash
-    ;                 (list
-    ;                     (cons 'material material)
-    ;                     (cons 'num-sheets (length material-sheets))
-    ;                     (cons 'material-waste (calculate-material-waste material-sheets))
-    ;                     (cons 'unused-items (length (filter (lambda (item) (= (order-item-struct-material-id item) material)) unused-items))))))
-    ;         ))
-    ; (println (get-sheets-summary))
-
     (make-hash
         (list
             (cons 'cutting-patterns cutting-patterns)
@@ -168,29 +177,3 @@
             (cons 'unused-items unused-items)
             (cons 'sheets sheets)
             (cons 'sheets-summary (get-sheets-summary)))))
-
-
-
-
-
-;; Testing
-
-; (define order-items (list
-;                      (order-item-struct 490 2000 4784 #t)
-;                      (order-item-struct 482 1500 4784 #t)
-;                      (order-item-struct 989 564 4827 #t)
-;                      (order-item-struct 989 564 4827 #t)
-;                      (order-item-struct 989 564 4827 #t)
-;                      (order-item-struct 490 564 4827 #t)
-;                      (order-item-struct 490 564 4827 #t)
-;                      (order-item-struct 490 564 4827 #t)
-;                      (order-item-struct 482 564 4827 #t)
-;                      (order-item-struct 490 562 4827 #t)
-;                      (order-item-struct 490 564 4827 #t)
-;                      (order-item-struct 490 564 4827 #t)
-;                      (order-item-struct 490 564 4827 #t)
-;                      (order-item-struct 490 564 4827 #t)
-;                      (order-item-struct 490 564 4827 #t)
-;                      (order-item-struct 490 564 4827 #t)
-;                      (order-item-struct 690 564 4827 #t)
-;                      (order-item-struct 62 690 4827 #t)))

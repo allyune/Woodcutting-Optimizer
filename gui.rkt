@@ -96,8 +96,8 @@
                     [stretchable-width #f]
                     [stretchable-height #f]))
                 (define popup (new canvas% [parent popup-frame]
-                            [min-width 710]
-                            [min-height 525]
+                            [min-width 700]
+                            [min-height 518]
                             [paint-callback
                                 (lambda (canvas dc)
                                     (for ([item patterns])

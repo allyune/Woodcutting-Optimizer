@@ -3,7 +3,7 @@
 (require csv-reading
          racket/snip
          mrlib/panel-wob	
-         "main.rkt"
+         "output.rkt"
          "structs.rkt"
          "splitting.rkt"
          "cutting.rkt"
@@ -116,18 +116,18 @@
         (with-handlers 
             ([exn:fail?
                 (lambda (e) 
-                (println (format "Error messagw: ~a" (exn-message e)))
+                (println (format "Error message: ~a" (exn-message e)))
                     (cond
                         [(regexp-match? #px"^open-output-file: file exists.*" (exn-message e))]
                         [else (println "wrong data format")    
                             (define error (new dialog%	 
                                     [label "Input file error"]
                                     [parent frame]
-                                    [width 150]
-                                    [height 100]
+                                    [width 300]
+                                    [height 150]
                                     [style '(close-button)]))
-                            (new message% [parent error] [label "Wrong data format, check the input file and try again"])
-                            (new button% [parent error] [label "OK"] [callback (lambda (button event) (send error show #f))])
+                            (new message% [parent error] [vert-margin 20] [horiz-margin 20] [label (exn-message e)])
+                            (new button% [parent error] [vert-margin 20] [label "OK"] [callback (lambda (button event) (send error show #f))])
                             (send error show #t)
                             (set! input-file #f)
                             (send dropdown-panel set-canvas-background dropdown-background-no-file)
@@ -141,7 +141,7 @@
             (send dropdown-panel set-canvas-background dropdown-background-with-file)
             (send dropdown-panel refresh)
             (when results
-            (define output-path (put-file "Save file to..." #f #f (make-csv-file-name) "csv"))
+                (define output-path (put-file "Save file to..." #f #f (make-csv-file-name) "csv"))
             (when output-path
                 (when (file-exists? output-path)
                     (delete-file output-path))
@@ -192,7 +192,7 @@
                     [rectangle-y (+ (* row (+ rectangle-height gap)) gap)])
                 (draw-rectangle-with-info rectangle-x rectangle-y (car patterns) index)
                 (loop (cdr patterns) row (+ col 1) (+ index 1)))]))
-            (send results-board min-height (+ 1000 (* 133 (ceiling (/ (length (hash-ref results 'cutting-patterns)) 4))))))
+            (send results-board min-height (* 210 (ceiling (/ (length (hash-ref results 'cutting-patterns)) 4)))))
 
 (define (sheet-click-handler event)
     (define clicked-x (send event get-x))

@@ -40,7 +40,6 @@
           (<= (order-item-struct-width item) (space-struct-height space))))
 
 (define (get-valid-spaces-guillotine item sheet)
-    (println "getting valid spaces")
     (define available-spaces (rectangular-sheet-struct-available-spaces sheet))
     (if (order-item-struct-rotate item)
         (filter (lambda (space)
@@ -52,12 +51,33 @@
             available-spaces)))
 
 
-(define (get-best-orientation-guillotine item space sheet)
+(define (get-orientation-guillotine item space sheet)
     (cond
         ;===best orientation heuristics
         ; [(and (fits-original-orientation-guillotine? item space sheet)
         ;       (fits-rotated-guillotine? item space sheet))
-        ;     (compare-aspect-ratios item space sheet)]
-        ;; ======
+        ;     (compare-aspect-ratios item space)]
+        ; ======
         [(fits-original-orientation-guillotine? item space sheet) 'original]
         [(fits-rotated-guillotine? item space sheet) 'rotated]))
+
+
+; (define (space-equals-order-item? item space)
+;     (define-values (item-width item-height item-rotate) 
+;                     (values (order-item-struct-width item) (order-item-struct-height item) 
+;                             (order-item-struct-rotate item)))
+;     (define-values (space-width space-height) 
+;                     (values (space-struct-width space) (space-struct-height space)))
+;     (define (item-matches-original? item space)
+;         (and (= item-width space-width)
+;              (= item-height space-height)))
+;     (define (item-matches-rotated? item space)
+;         (and (= item-height space-width)
+;              (= item-width space-height)))
+;     (if item-rotate
+;         (or (item-matches-original? item space) 
+;             (item-matches-rotated? item space))
+;         (item-matches-original? item space)))
+
+
+                                            

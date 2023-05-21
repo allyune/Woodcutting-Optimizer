@@ -5,6 +5,9 @@
 
 (define margin (make-parameter 0))
 (define guillotine-cuts (make-parameter #f))
+(define valid-spaces-func (make-parameter #f))
+(define get-placement-func (make-parameter #f))
+(define get-orientation-func (make-parameter #f))
 
 (define (item-fits-on-material? item material-width material-height)
     (or (and (<= (order-item-struct-width item) material-width) 
@@ -120,3 +123,13 @@
         (or (item-matches-original? item space) 
             (item-matches-rotated? item space))
         (item-matches-original? item space)))
+
+(define (compare-aspect-ratios item space)
+    (define original-aspect-ratio-diff (abs (- (/ (order-item-struct-width item) (order-item-struct-height item))
+                                            (/ (space-struct-width space) (space-struct-height space)))))
+
+    (define rotated-aspect-ratio-diff (abs (- (/ (order-item-struct-height item) (order-item-struct-width item))
+                                            (/ (space-struct-width space) (space-struct-height space)))))
+    (if (< original-aspect-ratio-diff rotated-aspect-ratio-diff)
+        'original
+        'rotated))

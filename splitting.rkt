@@ -3,8 +3,6 @@
          "utils.rkt")
 (provide generate-available-spaces)
 
-
-
 (define (split-intersecting-space item space)
     (define intersecting-spaces '())
     (define-values (item-x item-y item-width item-height) 

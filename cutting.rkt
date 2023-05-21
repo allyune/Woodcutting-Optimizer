@@ -83,7 +83,6 @@
                 ]))
 
     (define (calculate-material-waste material-sheets)
-        (println (format "Processing material ~a" (rectangular-sheet-struct-material-id (first material-sheets))))
         (define filtered-used-areas (filter (lambda (area) 
                                             (eq? (car area) 
                                                   (rectangular-sheet-struct-material-id (first material-sheets)))) 
@@ -97,22 +96,22 @@
                             (+ acc (* (rectangular-sheet-struct-width sheet) 
                                     (rectangular-sheet-struct-height sheet)))))
         (define material-unused-area (- material-total-area material-used-area))
-        (println (format "material unused area ~a" material-unused-area))
-        (println (format "material total area ~a" material-total-area))
-        (println (format "material waste ~a" ( / (round (* (exact->inexact (* (/ material-unused-area material-total-area) 100)) 10000))  10000.0)))
         ( / (round (* (exact->inexact (* (/ material-unused-area material-total-area) 100)) 10000))  10000.0))
 
 
     (define (get-sheets-summary) 
-        (define material-ids (list->set (map rectangular-sheet-struct-material-id sheets)))
-        (map (lambda (material)
-                (define material-sheets (filter (lambda (sheet) (= material (rectangular-sheet-struct-material-id sheet))) sheets))
-                (list
-                    material
-                    (length material-sheets)
-                    (length (filter (lambda (item) (= (order-item-struct-material-id item) material)) unused-items))
-                    (calculate-material-waste material-sheets)))
-            (set->list material-ids)))
+        (define material-ids (remove-duplicates (map rectangular-sheet-struct-material-id sheets)))
+        (define summary (map (lambda (material)
+                                (define material-sheets (filter (lambda (sheet) (= material (rectangular-sheet-struct-material-id sheet))) sheets))
+                                (list
+                                    material
+                                    (length material-sheets)
+                                    (length (filter (lambda (item) (= (order-item-struct-material-id item) material)) unused-items))
+                                    (calculate-material-waste material-sheets)))
+            material-ids))
+        (for ([row summary])
+            (println (list (second row) (fourth row))))
+        summary)
 
     (make-hash
         (list

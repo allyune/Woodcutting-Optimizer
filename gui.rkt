@@ -119,8 +119,13 @@
 
 ;;Functions 
 (define (start-func)
+    (define cutting-strategy-value (send cutting-strategy get-selection))
+    (define guillotine-cuts? 
+        (case cutting-strategy-value
+            [(1) #t]
+            [else #f]))
     (parameterize ([margin (send margin-slider get-value)]
-                   [guillotine-cuts (send guillotine-check-box get-value)])
+                   [guillotine-cuts guillotine-cuts?])
         (with-handlers 
             ([exn:fail?
                 (lambda (e) 
@@ -274,11 +279,19 @@
                     [max-value 100]
                     [init-value 30]))
 
-(define guillotine-check-box (new check-box%
+; (define guillotine-check-box (new check-box%
+;                        [parent left]
+;                        [vert-margin 20]
+;                        [label "Ensure guillotine cuts?"]
+;                        [value #f]))
+
+(define cutting-strategy (new radio-box%
+                       [label "Radio Box"]
                        [parent left]
-                       [vert-margin 20]
-                       [label "Ensure guillotine cuts?"]
-                       [value #f]))
+                       	[selection 0]
+                       [choices (list "Prioritize material usage"
+                                      "Prioritize cutting efficiency")]))
+
 
 (define results-table (new canvas% 
                         [parent left]

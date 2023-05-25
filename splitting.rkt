@@ -11,25 +11,28 @@
     (define-values (space-x space-y space-width space-height) 
                     (values (space-struct-x space) (space-struct-y space)
                             (space-struct-width space) (space-struct-height space)))
-    (when (intersects? item space)
-            ;left space
-            (when (> item-x (+ space-x (margin)))
-                (set! intersecting-spaces (append intersecting-spaces 
-                    (list (space-struct space-x space-y (- item-x space-x (margin)) space-height)))))
-            ;right space
-            (when (< (+ item-x item-width) (+ space-x space-width (margin)))
-                (set! intersecting-spaces (append intersecting-spaces 
-                (list (space-struct (+ item-x item-width (margin)) space-y (- space-width (+ item-x item-width (margin) (- space-x))) space-height)))))
-                
-            ;bottom space
-            (when (> item-y (+ space-y (margin)))
-                (set! intersecting-spaces (append intersecting-spaces 
-                    (list (space-struct space-x space-y space-width (- item-y space-y (margin)))))))
-            ;top space
-            (when (< (+ item-y item-height) (+ space-y space-height (margin)))
-                (set! intersecting-spaces (append intersecting-spaces
-                    (list (space-struct space-x (+ item-y item-height (margin)) space-width (- space-height (+ item-y item-height (margin) (- space-y)))))))))
-        intersecting-spaces)
+    ;left space
+    (when (> item-x (+ space-x (margin)))
+        (println (format "[SPACES] Left space added x=~a y=~a width=~a height=~a" space-x space-y (- item-x space-x (margin)) space-height))
+        (set! intersecting-spaces (append intersecting-spaces 
+            (list (space-struct space-x space-y (- item-x space-x (margin)) space-height)))))
+    ;right space
+    (when (< (+ item-x item-width) (- (+ space-x space-width) (margin)))
+        (println (format "[SPACES] Right space added x=~a y=~a width=~a height=~a" (+ item-x item-width (margin)) space-y (- space-width item-width (margin)) space-height))
+        (set! intersecting-spaces (append intersecting-spaces 
+            (list (space-struct (+ item-x item-width (margin)) space-y (- space-width (- item-x space-x) item-width (margin)) space-height)))))
+        
+    ;bottom space
+    (when (> item-y (+ space-y (margin)))
+            (println (format "[SPACES] Bottom space added x=~a y=~a width=~a height=~a"  space-x space-y space-width (- item-y space-y (margin))))
+        (set! intersecting-spaces (append intersecting-spaces 
+            (list (space-struct space-x space-y space-width (- item-y space-y (margin)))))))
+    ;top space
+    (when (< (+ item-y item-height) (- (+ space-y space-height) (margin)))
+        (println (format "[SPACES] Top space added x=~a y=~a width=~a height=~a"  space-x (+ item-y item-height (margin)) space-width (- space-height item-height (margin))))
+        (set! intersecting-spaces (append intersecting-spaces
+            (list (space-struct space-x (+ item-y item-height (margin)) space-width (- space-height (- item-y space-y) item-height (margin)))))))
+    intersecting-spaces)
     
 
 (define (space-covered? space remaining-spaces)
@@ -54,21 +57,34 @@
                 (empty? (space-covered? space remaining-spaces))) remaining-spaces))
     remaining)
 
-;TODO: spaces from intersection are also empty when no spaces can be splitted!! - check
+
 (define (generate-available-spaces sheet item best-space)
     (define available-spaces (rectangular-sheet-struct-available-spaces sheet))
+    ;if item exactly matches the space - no need to split, just remove
     (define available-spaces-clean (filter (lambda (available-space) 
                                         (not (space-matches-item? item available-space))) available-spaces))
-    (define remaining-spaces-temp (map (lambda (space)
-                                            (define spaces-from-intersection (split-intersecting-space item space))
-                                            (if (empty? spaces-from-intersection)
-                                                (list space)
-                                                spaces-from-intersection))
-                            available-spaces-clean))
-    (define remaining-spaces (apply append remaining-spaces-temp))
-    (define filtered-spaces (filter-spaces remaining-spaces))
+    (define intersecting-spaces (filter (lambda (space) (intersects? item space)) available-spaces-clean))
+    (define nonintersecting-spaces (filter (lambda (space) (not (intersects? item space))) available-spaces-clean))
+    (define spaces-from-splitting (map (lambda (space) (split-intersecting-space item space)) intersecting-spaces))
+    (define spaces-not-empty (filter (lambda (list) (not (empty? list))) spaces-from-splitting))
+    (define remaining-spaces (apply append spaces-not-empty))
+    (println remaining-spaces)
+    (define remaining-spaces-all (apply append remaining-spaces (list nonintersecting-spaces)))    
+    (println remaining-spaces-all)
+    (define filtered-spaces (filter-spaces remaining-spaces-all))
+    (println filtered-spaces)
     filtered-spaces)
 
+
+; (define (generate-available-spaces-guillotine sheet item best-space)
+;         (define available-spaces (rectangular-sheet-struct-available-spaces sheet))
+;         ; (define available-spaces-clean (filter (lambda (available-space) 
+;         ;                                     (not (space-matches-item? item available-space))) available-spaces))
+;         (define spaces-from-splitting (split-intersecting-space item best-space))
+;         (define spaces-not-empty (filter (lambda (list) (not (empty? list))) spaces-from-splitting))
+;         (define remaining-spaces (filter (lambda (space) (not (spaces-equal? space best-space))) available-spaces))
+;         (define available-spaces-new (append remaining-spaces spaces-not-empty))
+;         available-spaces-new)
 
 
 ; (define (merge-adjacent-spaces spaces)

@@ -88,7 +88,7 @@
       (super on-event event))
     (super-new)))
 
-(define (make-popup patterns)
+(define (make-popup patterns available-spaces)
     (define popup-frame (new frame%	 
                     [label "Cutting pattern"]	 
                     [parent frame]	 
@@ -101,10 +101,18 @@
                             [min-height 518]
                             [paint-callback
                                 (lambda (canvas dc)
+                                    (send dc set-brush (new brush% [color dropdown-background-no-file]))
                                     (for ([item patterns])
                                         (define-values (x y width height) (values (cutting-pattern-struct-x item) (cutting-pattern-struct-y item)
                                                                                   (cutting-pattern-struct-width item) (cutting-pattern-struct-height item)))
-                                        (send dc draw-rectangle (/ x 4) (/ y 4) (/ width 4) (/ height 4))))]))
+                                        (send dc draw-rectangle (/ x 4) (/ y 4) (/ width 4) (/ height 4)))
+                                    (send dc set-brush (new brush% [color dropdown-background-with-file]))
+                                    (for ([space available-spaces])
+                                        (define-values (space-x space-y space-width space-height) (values (space-struct-x space) (space-struct-y space)
+                                                                                  (space-struct-width space) (space-struct-height space)))
+                                        (println (format "~a ~a ~a ~a" space-x space-y space-width space-height))
+                                        (send dc draw-rectangle (/ space-x 4) (/ space-y 4) (/ space-width 4) (/ space-height 4)))
+                                        )]))
                 (send popup set-canvas-background main-background)
                 (send popup-frame show #t)
                 (void))
@@ -209,7 +217,8 @@
               [index (+ (* row grid-width) col)])
             (when (< index (length (hash-ref results 'cutting-patterns)))
                 (println index)
-                (make-popup (list-ref (hash-ref results 'cutting-patterns) index))
+                (make-popup (list-ref (hash-ref results 'cutting-patterns) index) 
+                            (rectangular-sheet-struct-available-spaces (list-ref (hash-ref results 'sheets) index)))
             ))))
 
 (define (draw-table-header dc headers)

@@ -82,21 +82,65 @@
                 (set-rectangular-sheet-struct-available-spaces! best-sheet spaces-after-splitting)
                 ]))
 
-    (define (calculate-material-waste material-sheets)
-        (define filtered-used-areas (filter (lambda (area) 
-                                            (eq? (car area) 
-                                                  (rectangular-sheet-struct-material-id (first material-sheets)))) 
-                                used-areas))
-        (define material-used-area (apply + (map cdr filtered-used-areas)))
+    (define (calculate-cutting-map-used-area cutting-map)
+        (define used-areas (map (lambda (item)
+                                    (define-values (item-x item-y item-width item-height) 
+                                            (values (cutting-pattern-struct-x item) (cutting-pattern-struct-y item)
+                                                    (cutting-pattern-struct-width item) (cutting-pattern-struct-height item)))
+                                    (define used-width (if (<= (+ item-x (margin) item-width)
+                                                                material-width)
+                                                                (+ item-width (margin))
+                                                                (+ item-width (- material-width (+ item-x item-width)))))
 
-        ;just multiply area of one to 
-        (define material-total-area
-            (for/foldr ([acc 0])
-                        ([sheet material-sheets])
-                            (+ acc (* (rectangular-sheet-struct-width sheet) 
-                                    (rectangular-sheet-struct-height sheet)))))
-        (define material-unused-area (- material-total-area material-used-area))
-        ( / (round (* (exact->inexact (* (/ material-unused-area material-total-area) 100)) 10000))  10000.0))
+                                    (define used-height (if (<= (+ item-y (margin) item-height)
+                                                                material-height)
+                                                                (+ item-height (margin))
+                                                                (+ item-height (- material-height (+ item-y item-height)))))
+                                    (* used-width used-height))
+                                cutting-map))
+        
+        (apply + used-areas))
+
+    (define (calculate-material-waste material-sheets)
+        (define material-sheets-indexes (map (lambda (sheet) (index-of sheets sheet)) material-sheets))
+        (define material-cutting-maps (filter (lambda (cutting-map) (member (index-of cutting-patterns cutting-map) material-sheets-indexes)) cutting-patterns))
+        (define material-used-areas (map (lambda (cutting-map)
+                                            (calculate-cutting-map-used-area cutting-map))
+                                        material-cutting-maps))
+        (define material-waste-per-map (map (lambda (used-area) 
+                                                (define unused-area (- (* material-height material-width) used-area))
+                                                (* (/ unused-area (* material-height material-width)) 100)) material-used-areas))
+        (define average-material-waste (/ (apply + material-waste-per-map) (length material-waste-per-map)))
+        (println (format "Average magterial waste ~a" average-material-waste))
+        ( / (round (* (exact->inexact average-material-waste) 100))  100.0))
+         
+
+
+
+        ; (define filtered-used-areas (filter (lambda (area) 
+        ;                                     (eq? (car area) 
+        ;                                           (rectangular-sheet-struct-material-id (first material-sheets)))) 
+        ;                         used-areas))
+        ; (define material-used-areas (apply + (map cdr filtered-used-areas)))
+
+        ; (define material-waste-per-page (map (lambda (sheet-used-area)
+        ;                                         (* (/ sheet-used-area (* material-height material-width)) 100))
+        ;                                     (map cdr filtered-used-areas)))
+
+        ; (define average-material-waste (/ (apply + material-waste-per-page) (length material-waste-per-page)))
+
+        ; ( / (round (* (exact->inexact average-material-waste) 10000))  10000.0))
+
+                
+
+        ; ;just multiply area of one to 
+        ; (define material-total-area
+        ;     (for/foldr ([acc 0])
+        ;                 ([sheet material-sheets])
+        ;                     (+ acc (* (rectangular-sheet-struct-width sheet) 
+        ;                             (rectangular-sheet-struct-height sheet)))))
+        ; (define material-unused-area (- material-total-area material-used-area))
+        ; ( / (round (* (exact->inexact (* (/ material-unused-area material-total-area) 100)) 10000))  10000.0))
 
 
     (define (get-sheets-summary) 

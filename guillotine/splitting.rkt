@@ -12,7 +12,6 @@
                             (space-struct-width space) (space-struct-height space)))
     (cond 
         [
-            ; (< (+ item-x item-width) (- (+ space-x space-width) (margin)))
             (< (+ item-x item-width) (- (+ space-x space-width) (margin)))
             (space-struct (+ item-x item-width (margin)) space-y (- space-width (+ item-width (margin))) space-height)]
         [else

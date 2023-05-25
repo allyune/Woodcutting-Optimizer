@@ -113,7 +113,7 @@
         [(fits-rotated? item space sheet) 'rotated]))
 
 
-;; Helper functions for placing by dispance
+;; Helper functions for placing by distance
 (define (sort-spaces-proximity spaces)
 
   (define (distance-squared space)
@@ -155,8 +155,6 @@
                    [get-placement-func get-placement]
                    [get-orientation-func get-orientation])
     ; sheets of the same material id with empty spaces
-    (println (format "Guillotine cuts = ~a" (guillotine-cuts)))
-    (println (format "Valid spaces func = ~a" (valid-spaces-func)))
     (define valid-sheets (get-valid-sheets order-item sheets))
     (define suitable-sheets (filter (lambda (sheet)
                                         (not (empty? ((valid-spaces-func) order-item sheet))))

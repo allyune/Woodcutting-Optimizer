@@ -88,9 +88,9 @@
       (super on-event event))
     (super-new)))
 
-(define (make-popup patterns available-spaces)
+(define (make-popup patterns index)
     (define popup-frame (new frame%	 
-                    [label "Cutting pattern"]	 
+                    [label (format "Cutting map - Sheet ~a" (add1 index))]	 
                     [parent frame]	 
                     [width 400]	 
                     [height 500]
@@ -218,9 +218,7 @@
               [row (quotient relative-y 201)]
               [index (+ (* row grid-width) col)])
             (when (< index (length (hash-ref results 'cutting-patterns)))
-                (make-popup (list-ref (hash-ref results 'cutting-patterns) index) 
-                            (rectangular-sheet-struct-available-spaces (list-ref (hash-ref results 'sheets) index)))
-            ))))
+                (make-popup (list-ref (hash-ref results 'cutting-patterns) index) index)))))
 
 (define (draw-table-header dc headers)
     (send dc draw-rectangle 0 0 100 20)

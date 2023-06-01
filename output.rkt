@@ -28,7 +28,7 @@
     (define-values (pattern-x pattern-y pattern-width pattern-height) 
                     (values (cutting-pattern-struct-x pattern) (cutting-pattern-struct-y pattern)
                             (cutting-pattern-struct-width pattern) (cutting-pattern-struct-height pattern)))
-    (define results (list (curr-sheet-number) (curr-material-id) pattern-x pattern-y pattern-width pattern-height))
+    (define results (list (add1 (curr-sheet-number)) (curr-material-id) pattern-x pattern-y pattern-width pattern-height))
     results)
 
 (define (string->csv-string lst)

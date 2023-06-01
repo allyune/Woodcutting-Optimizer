@@ -154,6 +154,7 @@
     (parameterize ([valid-spaces-func get-valid-spaces]
                    [get-placement-func get-placement]
                    [get-orientation-func get-orientation])
+
     ; sheets of the same material id with empty spaces
     (define valid-sheets (get-valid-sheets order-item sheets))
     (define suitable-sheets (filter (lambda (sheet)

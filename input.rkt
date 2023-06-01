@@ -3,8 +3,8 @@
 (require csv-reading	
         "structs.rkt")
 
-(provide try-get-order-items)
-
+; (provide try-get-order-items)
+(provide (all-defined-out))
 
 (define (valid-entry? value)
   (and (integer? (string->number value))
@@ -13,7 +13,7 @@
 (define (valid-material? value)
     (or (valid-entry? value)
         (and
-            (> (string-length value) 0)
+            (> (string-length (string-trim value)) 0)
             (not (string->number value)))))
 
 ;not filtering out rows shorter than 18 yet to avoid errors with list-ref in valid-material-and-quantity?

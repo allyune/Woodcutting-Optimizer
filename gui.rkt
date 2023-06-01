@@ -101,17 +101,10 @@
                             [min-height 518]
                             [paint-callback
                                 (lambda (canvas dc)
-                                    (send dc set-brush (new brush% [color dropdown-background-no-file]))
                                     (for ([item patterns])
                                         (define-values (x y width height) (values (cutting-pattern-struct-x item) (cutting-pattern-struct-y item)
                                                                                   (cutting-pattern-struct-width item) (cutting-pattern-struct-height item)))
                                         (send dc draw-rectangle (/ x 4) (/ y 4) (/ width 4) (/ height 4)))
-                                    (send dc set-brush (new brush% [color dropdown-background-with-file]))
-                                    (for ([space available-spaces])
-                                        (define-values (space-x space-y space-width space-height) (values (space-struct-x space) (space-struct-y space)
-                                                                                  (space-struct-width space) (space-struct-height space)))
-                                        (println (format "~a ~a ~a ~a" space-x space-y space-width space-height))
-                                        (send dc draw-rectangle (/ space-x 4) (/ space-y 4) (/ space-width 4) (/ space-height 4)))
                                         )]))
                 (send popup set-canvas-background main-background)
                 (send popup-frame show #t)
@@ -119,6 +112,7 @@
 
 ;;Functions 
 (define (start-func)
+    (define start-time (current-inexact-milliseconds))
     (define cutting-strategy-value (send cutting-strategy get-selection))
     (define guillotine-cuts? 
         (case cutting-strategy-value
@@ -151,6 +145,9 @@
             (define cutting-sheets (hash-ref cutting-result 'sheets))
             (set! results cutting-result)
             (set! sheets cutting-sheets)
+            (define end-time (current-inexact-milliseconds))
+            (define execution-time (- end-time start-time))
+            (displayln (format "Execution time: ~a milliseconds" execution-time))
             (send dropdown-panel set-canvas-background dropdown-background-with-file)
             (send dropdown-panel refresh)
             (when results
@@ -221,7 +218,6 @@
               [row (quotient relative-y 201)]
               [index (+ (* row grid-width) col)])
             (when (< index (length (hash-ref results 'cutting-patterns)))
-                (println index)
                 (make-popup (list-ref (hash-ref results 'cutting-patterns) index) 
                             (rectangular-sheet-struct-available-spaces (list-ref (hash-ref results 'sheets) index)))
             ))))
@@ -286,8 +282,10 @@
 ;                        [value #f]))
 
 (define cutting-strategy (new radio-box%
-                       [label "Radio Box"]
+                       [label "Select cutting option"]
                        [parent left]
+                       [style '(vertical horizontal-label)]
+                       [vert-margin 20]
                        	[selection 0]
                        [choices (list "Prioritize material usage"
                                       "Prioritize cutting efficiency")]))

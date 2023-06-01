@@ -43,7 +43,6 @@
 
     (cond 
         [(and right-space top-space)
-            (println "[SPACES] Both spaces are available")
             (cond
                 [(space-bigger top-space right-space) 
                     ; (println "[SPACES] Top space is bigger")
@@ -53,7 +52,6 @@
                     ; (println (format "[SPACES] Right space reduced to x=~a y=~a width=~a height=~a" (+ item-x item-width (margin)) space-y (- space-width (+ item-x item-width (- space-x))) item-height))
                     ]
                 [else
-                    (println "[SPACES] Right space is bigger")
                     (set! intersecting-spaces (append intersecting-spaces (list right-space)))
                     (set! intersecting-spaces (append intersecting-spaces (list (space-struct space-x (+ item-y item-height (margin)) item-width (- space-height (+ item-height (margin)))))))
                     ; (println (format "[SPACES] Right space added x=~a y=~a width=~a height=~a" (space-struct-x right-space) (space-struct-y right-space) (space-struct-width right-space) (space-struct-height right-space)))
@@ -61,10 +59,8 @@
                     ])]
 
         [top-space 
-            (println "[SPACES] Only top space available")
             (set! intersecting-spaces (append intersecting-spaces (list top-space)))]
         [right-space 
-        (println "[SPACES] Only right space available")
         (set! intersecting-spaces (append intersecting-spaces (list right-space)))])
         intersecting-spaces)
 

@@ -82,6 +82,7 @@
     (define-values (space-x space-y space-width space-height) 
                     (values (space-struct-x space) (space-struct-y space)
                             (space-struct-width space) (space-struct-height space)))
+
     (and (< item-x (+ space-x space-width))
          (> (+ item-x item-width (margin)) space-x)
          (< item-y (+ space-y space-height))

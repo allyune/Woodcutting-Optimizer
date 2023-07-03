@@ -50,10 +50,6 @@
                             (values (space-struct-x best-space) (space-struct-y best-space)
                                     (space-struct-width best-space) (space-struct-height best-space)))
                 (define best-sheet-index (index-of sheets best-sheet))
-                ; Add the item to the cutting pattern of the best sheet
-                ; (println (format "Item ~a x ~a placed at coordinates (x=~a, y=~a) on cutting sheet ~a"
-                ;             (order-item-struct-width curr-item) (order-item-struct-height curr-item)
-                ;             best-x best-y best-sheet-index))
                 (define new-cutting-pattern (cutting-pattern-struct best-x best-y (order-item-struct-width curr-item) (order-item-struct-height curr-item)))
                 (set! cutting-patterns
                     (map (lambda (i sheet-pattern)
@@ -79,7 +75,6 @@
 
                 (define splitting-func (if (guillotine-cuts) generate-available-spaces-guillotine generate-available-spaces))
                 (define spaces-after-splitting (splitting-func best-sheet (last (list-ref cutting-patterns best-sheet-index)) best-space))
-                ; (set-rectangular-sheet-struct-available-spaces! best-sheet (merge-adjacent-spaces spaces-after-splitting))
                 (set-rectangular-sheet-struct-available-spaces! best-sheet spaces-after-splitting)
                 ]))
 
@@ -111,12 +106,7 @@
         (define material-waste-per-map (map (lambda (used-area) 
                                                 (define unused-area (- (* material-height material-width) used-area))
                                                 (* (/ unused-area (* material-height material-width)) 100)) material-used-areas))
-        
-        ; material waste per page
-        ; (for ([waste material-waste-per-map]
-        ;       [i (range 1 (+ (length material-waste-per-map) 1))])
-        ;     (println (list i ( / (round (* (exact->inexact waste) 100))  100.0))))
-            
+    
         (define average-material-waste (/ (apply + material-waste-per-map) (length material-waste-per-map)))
         ( / (round (* (exact->inexact average-material-waste) 100))  100.0))
 
@@ -130,13 +120,7 @@
                                     (length (filter (lambda (item) (= (order-item-struct-material-id item) material)) unused-items))
                                     (calculate-material-waste material-sheets)))
             material-ids))
-       
-        ;print page summary
-        ; (for ([row summary])
-        ;     (println (list (second row) (fourth row))))
          summary)
-
-    (println (length (apply append cutting-patterns)))
 
     (make-hash
         (list

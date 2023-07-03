@@ -3,7 +3,6 @@
 (require csv-reading	
         "structs.rkt")
 
-; (provide try-get-order-items)
 (provide (all-defined-out))
 
 (define (valid-entry? value)
@@ -17,7 +16,6 @@
             (not (string->number value)))))
 
 ;not filtering out rows shorter than 18 yet to avoid errors with list-ref in valid-material-and-quantity?
-; TODO: think what to do with rows with 0 on width or height - now filtering out
 (define (clean-data rows)
     (filter (lambda (row) 
                 (or (< (length row) 18)

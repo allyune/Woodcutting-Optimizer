@@ -53,11 +53,10 @@
 
 (define (get-orientation-guillotine item space sheet)
     (cond
-        ; ===best orientation heuristics
+        ;best orientation check
         [(and (fits-original-orientation-guillotine? item space sheet)
               (fits-rotated-guillotine? item space sheet))
             (compare-aspect-ratios item space)]
-        ; ======
         [(fits-original-orientation-guillotine? item space sheet) 'original]
         [(fits-rotated-guillotine? item space sheet) 'rotated]))
 

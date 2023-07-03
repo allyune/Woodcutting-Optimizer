@@ -1,8 +1,6 @@
 #lang racket/gui
 
 (require csv-reading
-         racket/snip
-         mrlib/panel-wob	
          "output.rkt"
          "structs.rkt"
          "splitting.rkt"
@@ -159,6 +157,7 @@
                     (lambda (output-port)
                     (write-string (cutting-result->output results) output-port))))
                 (define num-sheets (hash-ref results 'number-of-sheets))
+                (send save-pdf enable #t)
                 (send results-board refresh)
                 (send results-table refresh)))))
 
@@ -273,11 +272,6 @@
                     [max-value 100]
                     [init-value 30]))
 
-; (define guillotine-check-box (new check-box%
-;                        [parent left]
-;                        [vert-margin 20]
-;                        [label "Ensure guillotine cuts?"]
-;                        [value #f]))
 
 (define cutting-strategy (new radio-box%
                        [label "Select cutting option"]
@@ -303,8 +297,15 @@
                                     (draw-table-header dc '("Material" "Sheets" "Unused items" "Waste"))
                                     (draw-results-table dc)))]))
 
+(define save-pdf (new button%
+                    [parent right]
+                    [label "Save cutting maps as PDF"]
+                    [vert-margin 0]
+                    [enabled #f]
+                    [callback (lambda (button event) (save-cutting-maps (hash-ref results 'cutting-patterns) sheets))]))
+
 (define results-board (new my-result-board% [parent right]
-                                       [vert-margin 10] [horiz-margin 10]
+                                       [vert-margin 0] [horiz-margin 10]
                                        [stretchable-width #t] [stretchable-height #t]
                                        [min-height 400] [min-width 400]
                                        [style '(transparent)]
@@ -325,6 +326,5 @@
                                                 (draw-rectangles dc)]))]))
                               
 
-(println (white-on-black-panel-scheme?))
 (send dropdown-panel accept-drop-files #t)
 (send frame show #t)

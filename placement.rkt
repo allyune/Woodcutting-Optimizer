@@ -104,11 +104,6 @@
 
 (define (get-orientation-normal item space sheet)
     (cond
-        ; ===best orientation heuristics
-        ; [(and (fits-original-orientation? item space sheet)
-        ;       (fits-rotated? item space sheet))
-        ;     (compare-aspect-ratios item space)]
-        ; ======
         [(fits-original-orientation? item space sheet) 'original]
         [(fits-rotated? item space sheet) 'rotated]))
 

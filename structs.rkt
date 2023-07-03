@@ -5,7 +5,6 @@
           (struct-out cutting-pattern-struct)
           (struct-out space-struct))
 
- ;;use define-struct/contract?
 (struct rectangular-sheet-struct (width height material-id [available-spaces #:mutable]))
 (struct order-item-struct (width height material-id rotate))
 (struct cutting-pattern-struct (x y width height))

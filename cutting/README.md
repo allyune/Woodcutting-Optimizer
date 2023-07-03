@@ -1,3 +1,0 @@
-cutting
-=======
-README text here.
